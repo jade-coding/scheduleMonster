@@ -8,3 +8,4 @@ indexRouter.post('/', function (req, res) {
 
 export { indexRouter };
 export * from './userRouter';
+export * from './itemRouter';
