@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 // import { useNavigate } from 'react-router-dom';
 import * as API from '../../api';
-import * as Style from './Form';
+import * as Style from './form';
 import { useDispatch } from 'react-redux';
 import { login } from './userSlice';
 import { IUser, ILogin, IRegister } from '../../types/userInterface';
+//dummy data
+import { loginUser, registerUser } from './userDummy';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -22,24 +24,28 @@ const Login = () => {
 
     //로그인 토큰 확인 후 정보 있으면 ok 없으면 정보 없음 띄어주기
     //에러 항목 어떻게 오는지 보고 띄워주기
-    const { token, auth, nickname, point } = await API.post(
-      '/users/login',
-      userInfo,
-    );
+    // const { token, auth, nickname, point } = await API.post(
+    //   '/users/login',
+    //   userInfo,
+    // );
+    const { nickname, email: resEmail, auth, point } = loginUser.loginUser;
+    const token: string | undefined = loginUser.accessToken;
 
-    if (!token) {
-      const error = '아이디 또는 비밀번호가 일치하지 않습니다.';
-      setErrorContent(error);
-    }
-    console.log('auth', auth);
     if (token) {
       const user: IUser = {
-        email,
+        email: resEmail,
         nickname,
         point,
         auth,
       };
+      //store에 로그인 유저 정보 저장
       dispatch(login(user));
+      //토근 로컬 스토리지 저장, refreshtoken도 따로 저장해야하나?
+      localStorage.setItem('token', token);
+    } else {
+      //토근이 없는 경우 일단 에러 메세지를 바꾸는데 api 에러 형태를 봐야한다
+      const error = '아이디 또는 비밀번호가 일치하지 않습니다.';
+      setErrorContent(error);
     }
     //경로확인하기
     //관리자,일반사용자 구분해서 경로 변경
@@ -51,11 +57,11 @@ const Login = () => {
   };
   return (
     <Style.Form onSubmit={loginSubmitHandler}>
-      <Style.Label htmlFor="userId">아이디</Style.Label>
+      <Style.Label htmlFor="userId">이메일</Style.Label>
       <Style.Input
         type="email"
         name="userId"
-        placeholder="이메일 형식의 아이디를 입력해주세요"
+        placeholder="이메일을 입력해주세요"
         required
         onChange={(e) => setEmail(e.target.value)}
       />
@@ -79,6 +85,7 @@ const Resgister = () => {
   const [pw, setPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
   const [isEqual, setIsEqual] = useState(false);
+  const dispatch = useDispatch();
 
   let registerInfo: IRegister = { nickname: '', email: '', password: '' };
 
@@ -95,9 +102,15 @@ const Resgister = () => {
     //회원가입시 발생할 수 있는 오류
     //이미 있는 이메일인 경우,
     //닉네임중복?
-    await API.post('/users', registerInfo);
+    //api /users 보내고
+    //api /users/login 보내기
+    // await API.post('/users', registerInfo);
+    //register password가 암호화 되어있음. 현재 회원가입 시, post 2번 보내야함
+    // await API.post('/users/login',{email, password})
 
-    //회원가입 시 경로 변경
+    const { nickname: nick, auth, point } = registerUser;
+
+    dispatch(login({ nickname: nick, auth, point, email }));
   };
 
   useEffect(() => {
@@ -120,11 +133,11 @@ const Resgister = () => {
           setNickname(e.target.value);
         }}
       />
-      <Style.Label htmlFor="email">아이디</Style.Label>
+      <Style.Label htmlFor="email">이메일</Style.Label>
       <Style.Input
         type="email"
         name="email"
-        placeholder="이메일 형식의 아이디를 입력해주세요"
+        placeholder="이메일을 입력해주세요"
         required
         onChange={(e) => {
           setEmail(e.target.value);
